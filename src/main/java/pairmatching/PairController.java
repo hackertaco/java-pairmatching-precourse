@@ -2,6 +2,7 @@ package pairmatching;
 
 import java.util.List;
 
+import static pairmatching.Message.INITIALLIZE;
 import static pairmatching.Message.INVALID_FEATURE;
 
 public class PairController {
@@ -17,25 +18,33 @@ public class PairController {
     }
 
     public void start(){
-        getCrews();
-        // 2. 기능 선택 메세지
+        List<String> backCrews = getCrews("src/main/resources/backend-crew.md");
+        List<String> frontCrews = getCrews("src/main/resources/backend-crew.md");
 
+        run(backCrews, frontCrews);
+    }
+
+    private List<String> getCrews(String path){
+        return pairService.getCrews(path);
+    }
+    private void run(List<String> backCrews, List<String> frontCrews){
         while(true){
             try{
-                if(selectFeature().equals("Q")){
+                String input = selectFeature();
+                if(input.equals("Q")){
                     break;
                 }
-
+                if(input.equals("3")){
+                    MatchGenerator.initializeAll();
+                    System.out.println(INITIALLIZE);
+                    continue;
+                }
+                outputView.showInfo();
+                selectProcess(input, backCrews, frontCrews);
             }catch (IllegalArgumentException exception){
                 outputView.printError(exception.getMessage());
             }
         }
-
-    }
-
-    private void getCrews(){
-        List<String> backCrews = pairService.getCrews("src/main/resources/backend-crew.md");
-        List<String> frontCrews = pairService.getCrews("src/main/resources/frontend-crew.md");
     }
 
     private String selectFeature(){
@@ -47,4 +56,29 @@ public class PairController {
         }
         return selectedFeature;
     }
+
+    private void selectProcess(String input, List<String> backCrews, List<String> frontCrews){
+        while (true){
+            try{
+                outputView.showProcessMessage();
+                String[] selectedProcess = inputView.getProcess().split(", ");
+
+                pairService.validateSelectedProcess(selectedProcess);
+                List<Match> matches = pairService.startMatch(input, selectedProcess, backCrews, frontCrews);
+                if(!matches.isEmpty()){
+                    showResult(matches);
+                    break;
+                }
+
+            }catch (IllegalArgumentException exception){
+                outputView.printError(exception.getMessage());
+            }
+        }
+    }
+
+    private void showResult(List<Match> matches){
+        outputView.showResult(matches);
+    }
+
+
 }
